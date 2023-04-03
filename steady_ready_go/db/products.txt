@@ -1,0 +1,1 @@
+[{"id":2,"name":"T-shirt","description":"This is a t-shirt","price":10,"units":400,"category":"clothes"},{"id":3,"name":"Jean","description":"This is a jean","price":10,"units":400,"category":"clothes"}]
