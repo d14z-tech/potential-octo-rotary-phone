@@ -1,16 +1,31 @@
 const express = require('express');
-const ProductController = require('./controllers/products_controller');
+const PageNotFound = require('./errors/page_not_found');
+const ProductsController = require('./controllers/products_controller');
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 
+// Root path
 app.get('/', (req, res) => {
   res.send('<h1>Steady, Ready, Go!</h1><p><b>Status:</b> online.</p>');
 })
 
-app.use('/api/v1/products', ProductController);
+// Products
+app.use('/api/v1/products', ProductsController);
+
+// Page not found handler
+app.use(function(req, res, next) {
+  next(new PageNotFound());
+});
+
+// Error handler
+app.use(function(err, req, res, next) {
+  if (!(err instanceof PageNotFound)) console.log(err.stack);
+
+  res.status(err.status || 500).json({ status: 'error', message: err.message });
+});
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Steady, Ready, Go! listening on port ${port}.`);

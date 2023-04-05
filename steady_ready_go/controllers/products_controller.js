@@ -44,7 +44,7 @@ router.delete('/:id', (req, res) => {
 
   product.destroy();
 
-  res.json({ status: 'success', data: `${product.name} was destroy successfully` });
+  res.json({ status: 'success', data: `${product.name} has been successfully destroyed` });
 });
 
 module.exports = router;

@@ -1,1 +1,1 @@
-[{"id":2,"name":"New product 2","description":"this is a new product 2","price":101,"units":3001,"category":"New products"},{"id":3,"name":"New product 3","description":"this is a new product 3","price":102,"units":3002,"category":"New products"}]
+[{"id":2,"name":"Jeans XL","description":"This is a jean","price":10,"units":10,"category":"Hellow jeans"},{"id":5,"name":"New product 5","description":"this is a new product 5","price":104,"units":3004,"category":"New products"}]
