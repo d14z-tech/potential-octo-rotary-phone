@@ -1,1 +1,1 @@
-[{"id":2,"name":"T-shirt","description":"This is a t-shirt","price":10,"units":400,"category":"clothes"},{"id":3,"name":"Jean","description":"This is a jean","price":10,"units":400,"category":"clothes"}]
+[{"id":2,"name":"New product 2","description":"this is a new product 2","price":101,"units":3001,"category":"New products"},{"id":3,"name":"New product 3","description":"this is a new product 3","price":102,"units":3002,"category":"New products"}]

@@ -1,19 +1,48 @@
 const fs = require('fs');
+const joi = require('joi');
 
 module.exports = class Product {
   static source = './db/products.txt'
   static records = [];
+  static attributes = {
+    id: {
+      default: null,
+      schema: joi.number().required()
+    },
+    name: {
+      defaut: null,
+      schema: joi.string().required()
+    },
+    description: {
+      default: null,
+      schema: joi.string().required()
+    },
+    price: {
+      default: 0,
+      schema: joi.number().min(0)
+    },
+    units: {
+      default: 0,
+      schema: joi.number().integer().min(0)
+    },
+    category: {
+      default: null,
+      schema: joi.string().required()
+    }
+  }
 
   static read() {
     let file_content = fs.readFileSync(this.source)
+
     this.records = file_content.length === 0 ? [] : JSON.parse(file_content);
-    console.log(`Data fetched from ${this.source}`);
+    console.log(`Fetched data from ${this.source}`);
   }
 
   static write() {
     let stringified_records = JSON.stringify(this.records);
+
     fs.writeFileSync(this.source, stringified_records);
-    console.log(`Data stored in ${this.source}`);
+    console.log(`Stored data in ${this.source}`);
   }
 
   static all() {
@@ -23,13 +52,15 @@ module.exports = class Product {
   }
 
   static find(id) {
+    let product;
     let record_index;
+
     this.read();
 
-    let product = this.records.find((record, index) => {
+    product = this.records.find((record, index) => {
       if (record.id === Number(id)) {
         record_index = index;
-        return true 
+        return true;
       }
     });
 
@@ -40,85 +71,110 @@ module.exports = class Product {
     }
   }
 
-  static attributes = { 
-    id: { default: null },
-    name: { defaut: null },
-    description: { default: null },
-    price: { default: 0 },
-    units: { default: 0 },
-    category: { default: null }
-  };
-
-  constructor(new_attributes, record_index = null) {
+  constructor(new_attributes = {}, record_index = null) {
+    this.errors = {};
     this.record_index = record_index;
 
-    Object.entries(Product.attributes).forEach(([attr, options]) => {
+    Object.entries(this.constructor.attributes).forEach(([attr, options]) => {
       this[attr] = options.default
     });
 
     this.assign_attributes(new_attributes);
   }
 
-  assign_attributes(new_attributes) {
-    Object.keys(Product.attributes).forEach(attr => {
-      if (new_attributes[attr]) this[attr] = new_attributes[attr]
+  assign_attributes(new_attributes = {}) {
+    Object.keys(new_attributes).forEach(attr => {
+      if (this.constructor.attributes[attr]) { 
+        this[attr] = new_attributes[attr];
+      } else {
+        throw new Error(`Missing attribute ${attr}`);
+      }
     });
   }
 
   attributes() {
-    let attrs = {}
+    let attrs = {};
 
-    Object.keys(Product.attributes).forEach(attr => {
+    Object.keys(this.constructor.attributes).forEach(attr => {
       attrs[attr] = this[attr];
     });
 
     return attrs;
   }
 
-  save() {
-    let last_element = Product.records[Product.records.length - 1];
+  is_new_record() {
+    this.record_index === null || this.record_index === undefined;
+  }
 
-    if (!this.record_index) {
+  is_valid() {
+    this.errors = {};
+
+    Object.entries(this.constructor.attributes).forEach(([attr, options]) => {
+      let error = options.schema.strict().label(attr).validate(this[attr]).error;
+
+      if (error) {
+        this.errors[attr] = error.details.map(detail => detail.message);
+      }
+    });
+
+    return Object.keys(this.errors).length === 0;
+  }
+
+  save() {
+    let status;
+    let last_element = this.constructor.records[this.constructor.records.length - 1];
+
+    if (!this.is_new_record()) {
       this.id = last_element ? last_element.id + 1 : 1
     }
 
-    console.log(`Push ${Product.name}:`);
-    console.table(this.attributes());
+    status = this.is_valid();
 
-    Product.records.push(this.attributes());
-    Product.write();
+    if (status) {
+      console.log(`Push ${this.constructor.name}:`);
+      console.table(this.attributes());
 
-    return true;
+      this.constructor.records.push(this.attributes());
+      this.constructor.write();
+    }
+
+    return status;
   }
 
   update(new_attributes) {
-    if (this.record_index === null || this.record_index === undefined) {
-      throw new Error(`${Product.name} cannot be updated because it does not exist`);
+    let status;
+
+    if (this.is_new_record()) {
+      throw new Error(`${this.constructor.name} cannot be updated because it does not exist`);
     }
 
     delete new_attributes.id;
     this.assign_attributes(new_attributes);
 
-    console.log(`Update ${Product.name}:`);
-    console.table(this.attributes());
+    status = this.is_valid();
 
-    Product.records[this.record_index] = this.attributes();
-    Product.write();
+    if (status) {
+      console.log(`Update ${this.constructor.name}:`);
+      console.table(this.attributes());
 
-    return true;
+      Product.records[this.record_index] = this.attributes();
+      Product.write();
+    }
+
+    return status;
   }
 
   destroy() {
-    if (this.record_index === null || this.record_index === undefined) {
-      throw new Error(`${Product.name} cannot be destroyed because it does not exist`);
+    if (this.is_new_record()) {
+      throw new Error(`${this.constructor.name} cannot be destroyed because it does not exist`);
     }
 
-    console.log(`Destroy ${Product.name}:`);
-    console.log(this.attributes());
+    console.log(`Destroy ${this.constructor.name}:`);
+    console.table(this.attributes());
 
     Product.records.splice(this.record_index, 1);
     Product.write();
 
-    return true
+    return true;
   }
 }
