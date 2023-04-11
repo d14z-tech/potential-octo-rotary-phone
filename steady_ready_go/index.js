@@ -7,10 +7,19 @@ const port = 3000;
 
 app.use(express.json());
 
+// Logger
+app.use(function(req, res, next) {
+  console.log(`Started ${req.method} "${req.path}" for ${req.ip} at ${new Date()}`);
+  res.on('finish', () => {
+    console.log(`Completed ${res.statusCode} ${res.statusMessage}`);
+  });
+  next();
+});
+
 // Root path
 app.get('/', (req, res) => {
   res.send('<h1>Steady, Ready, Go!</h1><p><b>Status:</b> online.</p>');
-})
+});
 
 // Products
 app.use('/api/v1/products', ProductsController);
