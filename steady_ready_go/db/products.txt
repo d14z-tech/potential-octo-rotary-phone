@@ -1,1 +1,0 @@
-[{"id":2,"name":"Jeans XL","description":"This is a jean","price":10,"units":10,"category":"Hellow jeans"},{"id":5,"name":"New product 5","description":"this is a new product 5","price":104,"units":3004,"category":"New products"}]
