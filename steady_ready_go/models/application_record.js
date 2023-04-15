@@ -1,4 +1,5 @@
 const fs = require('fs');
+const crypto = require('crypto');
 const RecordNotFound = require('../errors/record_not_found');
 const MissingAttribute = require('../errors/missing_attribute');
 
@@ -34,7 +35,7 @@ module.exports = class ApplicationRecord {
     this.read();
 
     record = this.records.find((object, index) => {
-      if (object.id === Number(id)) {
+      if (object.id === id) {
         record_index = index;
         return true;
       }
@@ -98,10 +99,9 @@ module.exports = class ApplicationRecord {
 
   save() {
     let status;
-    let last_element = this.constructor.records[this.constructor.records.length - 1];
 
     if (!this.is_new_record()) {
-      this.id = last_element ? last_element.id + 1 : 1
+      this.id = crypto.randomUUID();
     }
 
     status = this.is_valid();

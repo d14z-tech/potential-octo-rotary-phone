@@ -7,7 +7,7 @@ module.exports = class Product extends ApplicationRecord {
   static attributes = {
     id: {
       default: null,
-      schema: joi.number().required()
+      schema: joi.string().required()
     },
     name: {
       defaut: null,
