@@ -9,9 +9,10 @@ module.exports = class ApplicationRecord {
   static attributes = {};
 
   static read() {
-    let file_content = fs.readFileSync(this.source)
+    if (!fs.existsSync(this.source)) fs.appendFileSync(this.source, '[]');
+    let file_content = fs.readFileSync(this.source);
 
-    this.records = file_content.length === 0 ? [] : JSON.parse(file_content);
+    this.records = JSON.parse(file_content);
     console.log(`Fetched data from ${this.source}`);
   }
 
