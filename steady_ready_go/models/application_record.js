@@ -31,7 +31,6 @@ module.exports = class ApplicationRecord {
   static find(id) {
     let record;
     let record_index;
-
     this.read();
 
     record = this.records.find((object, index) => {
@@ -49,14 +48,20 @@ module.exports = class ApplicationRecord {
   }
 
   constructor(new_attributes = {}, record_index = null) {
+    let attributes;
+    let id;
+
+    ({ id = null, ...attributes } = new_attributes);
+    
     this.errors = {};
+    this.id = id;
     this.record_index = record_index;
 
     Object.entries(this.constructor.attributes).forEach(([attr, options]) => {
       this[attr] = options.default
     });
 
-    this.assign_attributes(new_attributes);
+    this.assign_attributes(attributes);
   }
 
   assign_attributes(new_attributes = {}) {
@@ -70,7 +75,7 @@ module.exports = class ApplicationRecord {
   }
 
   attributes() {
-    let attrs = {};
+    let attrs = { id: this.id };
 
     Object.keys(this.constructor.attributes).forEach(attr => {
       attrs[attr] = this[attr];
@@ -80,7 +85,7 @@ module.exports = class ApplicationRecord {
   }
 
   is_new_record() {
-    this.record_index === null || this.record_index === undefined;
+    return this.record_index === null || this.record_index === undefined;
   }
 
   is_valid() {
@@ -98,19 +103,20 @@ module.exports = class ApplicationRecord {
   }
 
   save() {
-    let status;
-
-    if (!this.is_new_record()) {
-      this.id = crypto.randomUUID();
-    }
-
-    status = this.is_valid();
+    let status = this.is_valid();
 
     if (status) {
-      console.log(`Push ${this.constructor.name}:`);
+      if (this.is_new_record()) {
+        this.id = crypto.randomUUID();
+        console.log(`Push ${this.constructor.name}:`);
+        this.constructor.records.push(this.attributes());
+        this.record_index = this.constructor.records.length - 1
+      } else {
+        console.log(`Update ${this.constructor.name}:`);
+        this.constructor.records[this.record_index] = this.attributes();
+      }
+      
       console.table(this.attributes());
-
-      this.constructor.records.push(this.attributes());
       this.constructor.write();
     }
 
@@ -118,26 +124,13 @@ module.exports = class ApplicationRecord {
   }
 
   update(new_attributes) {
-    let status;
-
     if (this.is_new_record()) {
       throw new Error(`${this.constructor.name} cannot be updated because it does not exist`);
     }
 
-    delete new_attributes.id;
     this.assign_attributes(new_attributes);
 
-    status = this.is_valid();
-
-    if (status) {
-      console.log(`Update ${this.constructor.name}:`);
-      console.table(this.attributes());
-
-      this.constructor.records[this.record_index] = this.attributes();
-      this.constructor.write();
-    }
-
-    return status;
+    return this.save();
   }
 
   destroy() {

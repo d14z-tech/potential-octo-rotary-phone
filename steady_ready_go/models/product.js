@@ -5,10 +5,6 @@ module.exports = class Product extends ApplicationRecord {
   static source = './db/products.txt';
 
   static attributes = {
-    id: {
-      default: null,
-      schema: joi.string().required()
-    },
     name: {
       defaut: null,
       schema: joi.string().required()
