@@ -110,7 +110,7 @@ module.exports = class ApplicationRecord {
   }
 
   save() {
-    let timestamp = new Date();
+    let timestamp = (new Date()).toJSON();
     let status = this.is_valid();
 
     if (status) {
