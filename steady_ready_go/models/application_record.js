@@ -50,11 +50,15 @@ module.exports = class ApplicationRecord {
   constructor(new_attributes = {}, record_index = null) {
     let attributes;
     let id;
+    let created_at;
+    let updated_at;
 
-    ({ id = null, ...attributes } = new_attributes);
+    ({ id = null, created_at = null, updated_at = null, ...attributes } = new_attributes);
     
     this.errors = {};
     this.id = id;
+    this.created_at = created_at;
+    this.updated_at = updated_at;
     this.record_index = record_index;
 
     Object.entries(this.constructor.attributes).forEach(([attr, options]) => {
@@ -81,6 +85,9 @@ module.exports = class ApplicationRecord {
       attrs[attr] = this[attr];
     });
 
+    attrs.created_at = this.created_at;
+    attrs.updated_at = this.updated_at;
+
     return attrs;
   }
 
@@ -103,16 +110,20 @@ module.exports = class ApplicationRecord {
   }
 
   save() {
+    let timestamp = new Date();
     let status = this.is_valid();
 
     if (status) {
       if (this.is_new_record()) {
         this.id = crypto.randomUUID();
+        this.created_at = timestamp;
+        this.updated_at = timestamp;
         console.log(`Push ${this.constructor.name}:`);
         this.constructor.records.push(this.attributes());
         this.record_index = this.constructor.records.length - 1
       } else {
         console.log(`Update ${this.constructor.name}:`);
+        this.updated_at = timestamp;
         this.constructor.records[this.record_index] = this.attributes();
       }
       
