@@ -27,8 +27,8 @@ router.post('/', (req, res) => {
   }
 });
 
-// PUT /products/:id
-router.put('/:id', (req, res) => {
+// PATCH /products/:id
+router.patch('/:id', (req, res) => {
   let product = Product.find(req.params.id);
 
   if (product.update(req.body)) {
