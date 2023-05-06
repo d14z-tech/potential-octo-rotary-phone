@@ -1,4 +1,4 @@
-module.exports = class PageNotFound extends Error {
+export default class PageNotFound extends Error {
   constructor(...params) {
     super(...params);
 

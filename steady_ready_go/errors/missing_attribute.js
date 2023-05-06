@@ -1,4 +1,4 @@
-module.exports = class MissingAttribute extends Error {
+export default class MissingAttribute extends Error {
   constructor(model_name, attribute_name, ...params) {
     super(...params);
 

@@ -1,72 +1,64 @@
-const fs = require('fs');
-const crypto = require('crypto');
-const RecordNotFound = require('../errors/record_not_found');
-const MissingAttribute = require('../errors/missing_attribute');
+import { Schema, model as Model, Error as MongooseError } from 'mongoose';
+import RecordNotFound from '../errors/record_not_found.js';
+import MissingAttribute from '../errors/missing_attribute.js';
 
-module.exports = class ApplicationRecord {
-  static source;
-  static records = [];
+export default class ApplicationRecord {
   static attributes = {};
-
-  static read() {
-    if (!fs.existsSync(this.source)) fs.appendFileSync(this.source, '[]');
-    let file_content = fs.readFileSync(this.source);
-
-    this.records = JSON.parse(file_content);
-    console.log(`Fetched data from ${this.source}`);
-  }
-
-  static write() {
-    let stringified_records = JSON.stringify(this.records);
-
-    fs.writeFileSync(this.source, stringified_records);
-    console.log(`Stored data in ${this.source}`);
-  }
-
-  static all() {
-    this.read();
-
-    return this.records.map((record, index) => new this(record, index));
-  }
-
-  static find(id) {
-    let record;
-    let record_index;
-    this.read();
-
-    record = this.records.find((object, index) => {
-      if (object.id === id) {
-        record_index = index;
-        return true;
-      }
-    });
-
-    if (record) {
-      return new this(record, record_index);
-    } else {
-      throw new RecordNotFound(this.name);
+  static model;
+  static schema;
+  static schema_options = {
+    timestamps: {
+      createdAt: 'created_at',
+      updatedAt: 'updated_at'
     }
+  };
+
+  static _load_model() {
+    this.schema = new Schema(this.attributes, this.schema_options)
+    this.model = Model(this.name, this.schema);
+
+    Object.keys(this.attributes).forEach(attr => {
+      Object.defineProperty(this.prototype, attr, {
+        get() {
+          return this.document.get(attr);
+        },
+        set(value) {
+          this.document.set(attr, value);
+        }
+      });
+    });
   }
 
-  constructor(new_attributes = {}, record_index = null) {
-    let attributes;
-    let id;
-    let created_at;
-    let updated_at;
+  static new(new_attributes = {}) {
+    return new this(new this.model(new_attributes));
+  }
 
-    ({ id = null, created_at = null, updated_at = null, ...attributes } = new_attributes);
-    
+  static async all() {
+    let documents = [];
+    try {
+      for await (let doc of this.model.find({})) {
+        documents.push(new this(doc));
+      }
+    } catch (err) { throw err }
+
+    return documents;
+  }
+
+  static async find(id) {
+    try {
+      let document = await this.model.findById(id)
+
+      if (document) {
+        return new this(document);
+      } else {
+        throw new RecordNotFound(this.name);
+      }
+    } catch (err) { throw err }
+  }
+
+  constructor(document) {
+    this.document = document;
     this.errors = {};
-    this.id = id;
-    this.created_at = created_at;
-    this.updated_at = updated_at;
-    this.record_index = record_index;
-
-    Object.entries(this.constructor.attributes).forEach(([attr, options]) => {
-      this[attr] = options.default
-    });
-
-    this.assign_attributes(attributes);
   }
 
   assign_attributes(new_attributes = {}) {
@@ -80,82 +72,61 @@ module.exports = class ApplicationRecord {
   }
 
   attributes() {
-    let attrs = { id: this.id };
-
-    Object.keys(this.constructor.attributes).forEach(attr => {
-      attrs[attr] = this[attr];
-    });
-
-    attrs.created_at = this.created_at;
-    attrs.updated_at = this.updated_at;
-
-    return attrs;
+    return this.document.toObject({ versionKey: false })
   }
 
-  is_new_record() {
-    return this.record_index === null || this.record_index === undefined;
+  async validate() {
+    try {
+      this.errors = {};
+      await this.document.validate()
+    } catch (err) {
+      if (err instanceof MongooseError.ValidationError) {
+        this.errors = this.document.errors;
+        for (const [key, value] of Object.entries(this.document.errors)) {
+          this.errors[key] = value.message;
+        }
+      } else throw err;
+    }
   }
 
-  is_valid() {
-    this.errors = {};
+  async is_valid() {
+    try {
+      await this.validate();
 
-    Object.entries(this.constructor.attributes).forEach(([attr, options]) => {
-      let error = options.schema.strict().label(attr).validate(this[attr]).error;
+      return Object.keys(this.errors).length === 0;
+    } catch (err) { throw err }
+  }
 
-      if (error) {
-        this.errors[attr] = error.details.map(detail => detail.message);
+  async save() {
+    try {
+      let status = await this.is_valid();
+
+      if (status) {
+        await this.document.save()
       }
-    });
 
-    return Object.keys(this.errors).length === 0;
+      return status;
+    } catch (err) { throw err } 
   }
 
-  save() {
-    let timestamp = (new Date()).toJSON();
-    let status = this.is_valid();
+  async update(new_attributes) {
+    try {
+      let status = await this.is_valid();
+      this.assign_attributes(new_attributes);
 
-    if (status) {
-      if (this.is_new_record()) {
-        this.id = crypto.randomUUID();
-        this.created_at = timestamp;
-        this.updated_at = timestamp;
-        console.log(`Push ${this.constructor.name}:`);
-        this.constructor.records.push(this.attributes());
-        this.record_index = this.constructor.records.length - 1
-      } else {
-        console.log(`Update ${this.constructor.name}:`);
-        this.updated_at = timestamp;
-        this.constructor.records[this.record_index] = this.attributes();
+      if (status) {
+        status = await this.save();
       }
-      
-      console.table(this.attributes());
-      this.constructor.write();
-    }
 
-    return status;
+      return status;
+    } catch (err) { throw err }
   }
 
-  update(new_attributes) {
-    if (this.is_new_record()) {
-      throw new Error(`${this.constructor.name} cannot be updated because it does not exist`);
-    }
+  async destroy() {
+    try {
+      await this.constructor.model.findByIdAndRemove(this.document._id);
 
-    this.assign_attributes(new_attributes);
-
-    return this.save();
-  }
-
-  destroy() {
-    if (this.is_new_record()) {
-      throw new Error(`${this.constructor.name} cannot be destroyed because it does not exist`);
-    }
-
-    console.log(`Destroy ${this.constructor.name}:`);
-    console.table(this.attributes());
-
-    this.constructor.records.splice(this.record_index, 1);
-    this.constructor.write();
-
-    return true;
+      return true;
+    } catch (err) { throw err }
   }
 }

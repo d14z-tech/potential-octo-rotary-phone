@@ -1,41 +1,37 @@
-const express = require('express');
-const PageNotFound = require('./errors/page_not_found');
-const ProductsController = require('./controllers/products_controller');
-
-const app = express();
+import Http from 'http';
+import Mongoose from 'mongoose';
+import App from './app.js';
 const port = 3000;
 
-app.use(express.json());
+App.set('port', port);
+Mongoose.set('debug', true);
 
-// Logger
-app.use(function(req, res, next) {
-  console.log(`Started ${req.method} "${req.path}" for ${req.ip} at ${new Date()}`);
-  res.on('finish', () => {
-    console.log(`Completed ${res.statusCode} ${res.statusMessage}`);
-  });
-  next();
-});
+const server = Http.createServer(App);
 
-// Root path
-app.get('/', (req, res) => {
-  res.send('<h1>Steady, Ready, Go!</h1><p><b>Status:</b> online.</p>');
-});
+const shutdown = async () => {
+  try {
+    console.log("\nShutting down server...");
+    server.close();
+    console.log('Server closed.');
+    console.log('Closing database connection...');
+    await Mongoose.disconnect();
+    console.log('Database connection closed.');
+    process.exit(0);
+  } catch (err) { throw err }
+}
 
-// Products
-app.use('/api/v1/products', ProductsController);
+const start = async () => {
+  try {
+    console.log("Establishing connection to database...");
+    await Mongoose.connect('mongodb://localhost:27017/steady_ready_go');
+    console.log('Connected to database.');
+    server.listen(port, '0.0.0.0', () => {
+      console.log(`Steady, Ready, Go! listening on port ${port}.`);
+    });
+  } catch (err) { throw err }
+}
 
-// Page not found handler
-app.use(function(req, res, next) {
-  next(new PageNotFound());
-});
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
-// Error handler
-app.use(function(err, req, res, next) {
-  if (!(err instanceof PageNotFound)) console.log(err.stack);
-
-  res.status(err.status || 500).json({ status: 'error', message: err.message });
-});
-
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Steady, Ready, Go! listening on port ${port}.`);
-});
+start();

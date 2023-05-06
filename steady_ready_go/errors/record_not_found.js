@@ -1,4 +1,4 @@
-module.exports = class RecordNotFound extends Error {
+export default class RecordNotFound extends Error {
   constructor(model_name, ...params) {
     super(...params);
 
