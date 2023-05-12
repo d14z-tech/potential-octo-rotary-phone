@@ -31,7 +31,6 @@ App.use(AsyncHandler(async (req, res, next) => {
 
 // Error handler
 App.use((err, req, res, next) => {
-  console.log('por aqui estoy entrando cuando hay un error');
   if (!(err instanceof PageNotFound)) console.log(err.stack);
 
   res.status(err.status || 500).json({ status: 'error', message: err.message });

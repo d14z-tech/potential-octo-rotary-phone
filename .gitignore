@@ -2,6 +2,9 @@
 /class3/server/node_modules
 /class4/node_modules
 /class6/node_modules
+/class6/.env
 /steady_ready_go/node_modules
 /steady_ready_go/db/*
 !/steady_ready_go/db/.keep
+/wwc_ecommerce/node_modules
+/wwc_ecommerce/.env
