@@ -6,5 +6,5 @@
 /steady_ready_go/node_modules
 /steady_ready_go/db/*
 !/steady_ready_go/db/.keep
-/wwc_ecommerce/node_modules
-/wwc_ecommerce/.env
+/homework/node_modules
+/homework/.env
