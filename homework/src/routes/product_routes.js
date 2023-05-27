@@ -1,17 +1,22 @@
 import { Router } from "express";
-import { product_schema } from "../middlewares/index.js";
+import { Auth, ProductJoiSchema } from "../middlewares/index.js";
 import { ProductsController } from "../controllers/index.js";
 
 const router = Router();
+const private_router = Router();
 
-router.route("/")
-        .get(ProductsController.index)
-        .post(product_schema, ProductsController.create);
+private_router.use(Auth);
 
-router.route("/:id")
-        .get(ProductsController.show)
-        .put(product_schema, ProductsController.update)
-        .patch(product_schema, ProductsController.update)
-        .delete(ProductsController.destroy);
+private_router.route("/")
+                .get(ProductsController.index)
+                .post(ProductJoiSchema, ProductsController.create);
+
+private_router.route("/:id")
+                .get(ProductsController.show)
+                .put(ProductJoiSchema, ProductsController.update)
+                .patch(ProductJoiSchema, ProductsController.update)
+                .delete(ProductsController.destroy);
+                
+router.use(private_router);
 
 export default router;

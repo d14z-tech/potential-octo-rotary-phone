@@ -1,17 +1,22 @@
 import { Router } from "express";
-import user_schema from "../middlewares/user_schema.js";
+import { Auth, UserJoiSchema } from "../middlewares/index.js";
 import { UsersController } from "../controllers/index.js";
 
 const router = Router();
+const private_router = Router();
 
-router.route("/")
-        .get(UsersController.index)
-        .post(user_schema, UsersController.create);
+private_router.use(Auth);
 
-router.route("/:id")
-        .get(UsersController.show)
-        .put(user_schema, UsersController.update)
-        .patch(user_schema, UsersController.update)
-        .delete(UsersController.destroy);
+private_router.route("/")
+                .get(UsersController.index)
+                .post(UserJoiSchema, UsersController.create);
+
+private_router.route("/:id")
+                .get(UsersController.show)
+                .put(UserJoiSchema, UsersController.update)
+                .patch(UserJoiSchema, UsersController.update)
+                .delete(UsersController.destroy);
+
+router.use(private_router);
 
 export default router;

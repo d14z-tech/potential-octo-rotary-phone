@@ -2,9 +2,9 @@ import Joi from "joi";
 
 const schema = Joi.object({
   user: Joi.object({
-    name: Joi.string().required(),
     email: Joi.string().email().required(),
-  }).required().min(1)
+    password: Joi.string().max(72).required()
+  }).with('email', 'password').required()
 })
 
 export default async (req, res, next) => {

@@ -1,18 +1,18 @@
-import { CastError, Error } from "mongoose";
-import { EmptyResultError } from "sequelize";
-import Joi from "joi";
+const catch_responses = {
+  "ValidationError": 400,
+  "CastError": 400,
+  "DocumentNotFoundError": 404,
+  "EmptyResultError": 404,
+  "TokenExpiredError": 400,
+  "JsonWebTokenError": 400,
+}
 
 export default (err, req, res, next) => {
   console.log(err.stack);
+  const code = catch_responses[err.name];
 
-  if (err instanceof Joi.ValidationError) {
-    res.status(400).json({ status: 'error', message: err.message });
-  } else if (err instanceof CastError) {
-    res.status(400).json({ status: 'error', message: err.message });
-  } else if (err instanceof Error.DocumentNotFoundError) {
-    res.status(404).json({ status: 'error', message: err.message });
-  } else if (err instanceof EmptyResultError) {
-    res.status(404).json({ status: 'error', message: "Record not found." });
+  if (code) {
+    res.status(code).json({ status: 'error', message: err.message });
   } else {
     res.status(500).json({ status: 'error', message: err.message });
   }

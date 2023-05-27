@@ -1,7 +1,12 @@
 import sequelize from "../config/databases/postgresql.js";
 import { DataTypes, Model } from "sequelize";
+import Bcrypt from "bcrypt";
 
-class User extends Model {};
+class User extends Model {
+  authenticate(unencrypted_password) {
+    return Bcrypt.compareSync(unencrypted_password, this.password_digest);
+  }
+};
 
 User.init({
   name: {
@@ -11,6 +16,16 @@ User.init({
   email: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  password_digest: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  password: {
+    type: DataTypes.VIRTUAL,
+    set(unencrypted_password) {
+      this.setDataValue('password_digest', Bcrypt.hashSync(unencrypted_password, 12));
+    }
   }
 },
 {
